@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define TRUE 1
+#define FALSE 0 
+
 /* allow xml element key word */
 #define XML_OBJ_ELEMENT         "object"		// Element mapping to TR69 object node
 #define XML_PARAM_ELEMENT       "parameter"		// Element mapping to TR69 parameter of specific object
@@ -29,20 +32,46 @@
 
 /* translate to cwmp of Realtek SDK */
 #define ROOT_OBJ_NAME	"Root"
-#define h_file_name	"prmt_%s.h"
-#define c_file_name	"prmt_%s.c"
+#define H_FILE_NAME	"prmt_%s.h"
+#define C_FILE_NAME	"prmt_%s.c"
 
-#define CWMP_OP_TABLE_ENTRY	"struct CWMP_OP &t%sOP = { %s, %s };\n"
+// folloing is the naming rule for CWMP
+#define CWMP_OBJ_NAME		"%sObj"		//fill in "short obj name"
+#define CWMP_LEAF_NAME          CWMP_OBJ_NAME"Leaf"     //fill in "short obj name"
+#define CWMP_PRMT_INFO_NAME	CWMP_OBJ_NAME"Info"	//fill in "short obj name"
+#define CWMP_LEAF_INFO_NAME	CWMP_LEAF_NAME"Info"	//fill in "short obj name"
+#define CWMP_OBJ_OP_NAME        CWMP_OBJ_NAME"OP"       //fill in "short obj name"
+#define CWMP_LEAF_OP_NAME	CWMP_LEAF_NAME"OP"       //fill in "short obj name"
+#define CWMP_OBJ_NODE_NAME	CWMP_OBJ_NAME
+#define CWMP_LEAF_NODE_NAME	CWMP_LEAF_NAME
+
+#define CWMP_OBJ_OP_TABLE_ENTRY	"struct CWMP_OP "CWMP_OBJ_OP_NAME" = { %s, %s };\n"	//fill in "short obj name" + genFullOP_FuncName + genFullOP_FuncName
+#define CWMP_LEAF_OP_TABLE_ENTRY "struct CWMP_OP "CWMP_LEAF_OP_NAME" = { %s, %s };\n"        //fill in "short obj name" + genFullOP_FuncName + genFullOP_FuncName
 #define CWMP_GET_PROTOTYPE	"int %s(char *name, struct CWMP_LEAF *entity, int *type, void **data);\n"
 #define CWMP_SET_PROTOTYPE	"int %s(char *name, struct CWMP_LEAF *entity, int type, void *data);\n"
 
-#define CWMP_OBJ_INFO_ENTRY 	"{\"%s\",\teCWMP_tOBJECT,\tCWMP_READ,\t&t%sOP}"
-#define CWMP_OBJ_INFO_BEGIN	"struct CWMP_PRMT %sInfo[] ={\n"
+#define CWMP_OBJ_INFO_BEGIN	"struct CWMP_PRMT "CWMP_PRMT_INFO_NAME"[] ={\n"		// fill in "short obj name"
+#define CWMP_OBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    CWMP_READ,    &"CWMP_OBJ_OP_NAME"}"	// Object is read only
 #define CWMP_OBJ_INFO_END 	"\n};\n"
-#define CWMP_OBJ_ENUM_ENTRY	"  e%s"		// fill in "short obj name"
-#define CWMP_LEAF_ENUM_ENTRY	"  e%s%s"	// fill in "short obj name" + "param name"
-#define CWMP_ENUM_BEGIN		"enum e%s {\n"
-#define CWMP_ENUM_END		"\n};\n"
+#define CWMP_OBJ_INFO_ENUM_BEGIN	"enum e"CWMP_PRMT_INFO_NAME" {\n"	// fill in "short obj name"
+#define CWMP_OBJ_INFO_ENUM_ENTRY	"e%s"         // fill in "short obj name"
+#define CWMP_OBJ_INFO_ENUM_END		"\n};\n"
+
+#define CWMP_LEAF_INFO_BEGIN     "struct CWMP_PRMT "CWMP_LEAF_INFO_NAME"[] ={\n"	// fill in "short obj name"
+#define CWMP_LEAF_INFO_ENTRY     "{\"%s\",    %s,    %s,    &"CWMP_LEAF_OP_NAME"}"
+#define CWMP_LEAF_INFO_END       "\n};\n"
+#define CWMP_LEAF_INFO_ENUM_BEGIN	"enum e"CWMP_LEAF_INFO_NAME" {\n"       // fill in "short obj name"
+#define CWMP_LEAF_INFO_ENUM_ENTRY	"e%s_%s"       // fill in "short obj name" + "param name"
+#define CWMP_LEAF_INFO_ENUM_END		"\n};\n"
+
+#define CWMP_OBJ_NODE_BEGIN	"struct CWMP_NODE "CWMP_OBJ_NODE_NAME"[] ={\n"	// fill in "short obj name"
+#define CWMP_OBJ_NODE_ENTRY	"{&"CWMP_PRMT_INFO_NAME"["CWMP_OBJ_INFO_ENUM_ENTRY"],    %s,    %s}"		// fill in "short obj name" + {"short obj name" of child object} + {"short obj name" of child object} + {"short obj name" of child object}
+#define CWMP_OBJ_NODE_END	"{NULL,    NULL,    NULL}\n};\n"
+#define CWMP_LEAF_NODE_BEGIN	"struct CWMP_LEAF "CWMP_LEAF_NODE_NAME"[] ={\n"  // fill in "short obj name"
+#define CWMP_LEAF_NODE_ENTRY	"{ &"CWMP_LEAF_INFO_NAME"["CWMP_LEAF_INFO_ENUM_ENTRY"] }"
+#define CWMP_LEAF_NODE_END	"{ NULL }\n};\n"
+
+
 
 enum {
   SPEC_TR098 = 0,
@@ -50,6 +79,11 @@ enum {
 };
 
 #define TR69_SPEC	SPEC_TR181
+
+typedef enum {
+  TYPE_OBJ = 0,
+  TYPE_LEAF = 1
+} XML_TYPE;
 
 typedef enum {
   RET_OK = 0,

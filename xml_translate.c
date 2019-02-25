@@ -398,14 +398,26 @@ void endHandler_desc(void *userData, const char *name){
 
 
 /* translate to cwmp of Realtek SDK api */
-void genFullOP_FuncName(const int type, const char *name, const int strlen, char *funcName){
+/* type: 0 --> object
+ *       1 --> leaf
+ */
+void genFullOP_FuncName(const int type, const int isGet, const char *name, const int strlen, char *funcName){
   memset(funcName, 0, sizeof(funcName));
 
   if(type == 0){
-    /* for get op function */
-    snprintf(funcName, strlen, "get%s", name);
+    if(isGet){
+      snprintf(funcName, strlen, "get"CWMP_OBJ_NAME, name);
+      //snprintf(funcName, strlen, "get"CWMP_OBJ_NAME, name);
+   }else{
+      //Object only has get function
+      snprintf(funcName, strlen, "NULL");
+   }
   }else{
-    snprintf(funcName, strlen, "set%s", name);
+    if(isGet){
+      snprintf(funcName, strlen, "get"CWMP_LEAF_NAME, name);
+    }else{
+      snprintf(funcName, strlen, "set"CWMP_LEAF_NAME, name);
+    }
   }
 
   return;
@@ -415,9 +427,10 @@ void translate_ObjInfo(struct obj_entry *obj){
   FILE *h_fp=NULL, *c_fp=NULL;
   char h_filename[32], c_filename[32];
   char shortName[MAX_SHORT_NAME];
-  char buff[MAX_BUFF_LEN]={0}, tmpBuff[128];
+  char buff[MAX_BUFF_LEN]={0}, getOpBuff[128], setOpBuff[128], objBuff[128], leafBuff[128];
   int offset=0;
-  struct obj_entry *tmp=NULL;
+  struct obj_entry *tmpObj=NULL;
+  struct param_entry *tmpParam=NULL;
 
   memset(shortName, 0, sizeof(MAX_SHORT_NAME));
   memset(buff, 0, sizeof(MAX_BUFF_LEN));
@@ -425,8 +438,8 @@ void translate_ObjInfo(struct obj_entry *obj){
   /* translate to one file */
   snprintf(shortName, MAX_SHORT_NAME, "%s", ROOT_OBJ_NAME);
 
-  sprintf(h_filename, h_file_name, shortName);
-  sprintf(c_filename, c_file_name, shortName);
+  sprintf(h_filename, H_FILE_NAME, shortName);
+  sprintf(c_filename, C_FILE_NAME, shortName);
 
   if(!((h_fp=fopen(h_filename, "a+")) && (c_fp=fopen(c_filename, "a+")))){
     if(h_fp)
@@ -442,25 +455,110 @@ void translate_ObjInfo(struct obj_entry *obj){
 
   offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "/******** %s start ********/\n", obj->attr[OBJ_SHORT_NAME]);
 
-  // struct CWMP_OP &t%sOP = { %s, %s };
-  /* Object is ReadOnly type, so set function assign to "NULL" */
-  genFullOP_FuncName(0, obj->attr[OBJ_SHORT_NAME], sizeof(tmpBuff), tmpBuff);  //generate get op function name
-  offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OP_TABLE_ENTRY, obj->attr[OBJ_SHORT_NAME], tmpBuff, "NULL");
+  /**************** leaf info ***********************/
+  if(obj->param){
+    // root object doesn't need op handler function
+    if(strncmp(obj->attr[OBJ_SHORT_NAME], ROOT_OBJ_NAME, strlen(obj->attr[OBJ_SHORT_NAME]))){
+      /*  [1] write Leaf OP struct
+       *   - the handler function when get this function
+       */
+      genFullOP_FuncName(TYPE_LEAF, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
+      genFullOP_FuncName(TYPE_LEAF, FALSE, obj->attr[OBJ_SHORT_NAME], sizeof(setOpBuff), setOpBuff);  //generate get op function name
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_OP_TABLE_ENTRY, obj->attr[OBJ_SHORT_NAME], getOpBuff, setOpBuff);
+    }
 
+    /*  [2] write leaf info structure
+     *   - list parameter's name/type/flag/op information of this object
+     */
+    // struct CWMP_PRMT xxxxx[]={
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_BEGIN, obj->attr[OBJ_SHORT_NAME]);
+    tmpParam = obj->param;
+    while(tmpParam){
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_ENTRY,
+                              tmpParam->common_attr[COMMON_NAME], "TO_DO", "TO_DO", obj->attr[OBJ_SHORT_NAME]);
+      tmpParam = tmpParam->next;    // go through next parameter
+      if(tmpParam){
+        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), ",\n");
+      }
+    }
+    // };
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_END);
+  }
+
+  /*  [3] write Leaf Node structure
+   *   - list parameter of this object.
+   */
+  if(obj->param){
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_NODE_BEGIN, obj->attr[OBJ_SHORT_NAME]);
+
+    tmpParam = obj->param;
+    while(tmpParam){
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_NODE_ENTRY, obj->attr[OBJ_SHORT_NAME], obj->attr[OBJ_SHORT_NAME], tmpParam->common_attr[COMMON_NAME]);
+      tmpParam = tmpParam->next;  // go through next parameter
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), ",\n");  // { NULL } should be the last entry, which include in CWMP_LEAF_NODE_END
+    }
+
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_NODE_END);
+  }
+
+  /**************** object info ***********************/
+  // root object doesn't need op handler function
+  if(strncmp(obj->attr[OBJ_SHORT_NAME], ROOT_OBJ_NAME, strlen(obj->attr[OBJ_SHORT_NAME]))){
+    /*  [1] write Object OP struct
+     *   - the handler function when get this function
+     */
+    /* Object is ReadOnly type, so set function assign to "NULL" */
+    genFullOP_FuncName(TYPE_OBJ, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_OP_TABLE_ENTRY, obj->attr[OBJ_SHORT_NAME], getOpBuff, "NULL");
+  }
+
+  /*  [2] write object info structure
+   *   - list sub-object's name/type/flag/op information of this object
+   */
   if(obj->child){
-    // struct CWMP_PRMT %sInfo[]={
+    // struct CWMP_PRMT xxxxx[]={
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_BEGIN, obj->attr[OBJ_SHORT_NAME]);
-    tmp = obj->child;
-    while(tmp){
+    tmpObj = obj->child;
+    while(tmpObj){
       offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENTRY, 
-                              tmp->attr[OBJ_SHORT_NAME], tmp->attr[OBJ_SHORT_NAME]);
-      tmp = tmp->next;	// go through next object
-      if(tmp){
+                              tmpObj->attr[OBJ_SHORT_NAME], tmpObj->attr[OBJ_SHORT_NAME]);
+      tmpObj = tmpObj->next;	// go through next object
+      if(tmpObj){
         offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), ",\n");
       }
     }
     // };
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_END);
+  }
+
+  /*  [3] write Object Node structure 
+   *   - list sub-object of this object, and which pointer to leaf/object structure of sub-object.
+   */
+  if(obj->child){
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_NODE_BEGIN, obj->attr[OBJ_SHORT_NAME]);
+
+    tmpObj = obj->child;
+    while(tmpObj){
+      memset(objBuff, 0, sizeof(objBuff));
+      if(tmpObj->child){
+        snprintf(objBuff, sizeof(objBuff), CWMP_OBJ_NAME, tmpObj->attr[OBJ_SHORT_NAME]);
+      }else{
+        snprintf(objBuff, sizeof(objBuff), "NULL");  // no sub-object
+      }
+
+      memset(leafBuff, 0, sizeof(leafBuff));
+      if(tmpObj->param){
+        snprintf(leafBuff, sizeof(leafBuff), CWMP_LEAF_NAME, tmpObj->attr[OBJ_SHORT_NAME]);
+      }else{
+        snprintf(leafBuff, sizeof(leafBuff), "NULL");	// no leaf
+      }
+
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_NODE_ENTRY, obj->attr[OBJ_SHORT_NAME], tmpObj->attr[OBJ_SHORT_NAME], leafBuff, objBuff);
+      tmpObj = tmpObj->next;  // go through next object
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), ",\n");  // {NULL, NULL, NULL} should be the last entry, which include in CWMP_OBJ_NODE_END
+    }
+
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_NODE_END);
   }
 
   offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "/******** %s end ********/\n\n", obj->attr[OBJ_SHORT_NAME]);
@@ -476,24 +574,52 @@ void translate_ObjInfo(struct obj_entry *obj){
   memset(buff, 0, sizeof(MAX_BUFF_LEN));
   offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "/******** %s start ********/\n", obj->attr[OBJ_SHORT_NAME]);
 
-  // int %s(char *name, struct CWMP_LEAF *entity, int *type, void **data);
-  /* Object is ReadOnly type, so set function assign to "NULL" */
-  genFullOP_FuncName(0, obj->attr[OBJ_SHORT_NAME], sizeof(tmpBuff), tmpBuff);  //generate get op function name
-  offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_GET_PROTOTYPE, tmpBuff);
+  /**************** leaf info ***********************/
+  if(obj->param){
+    // root object doesn't need op handler function
+    if(strncmp(obj->attr[OBJ_SHORT_NAME], ROOT_OBJ_NAME, strlen(obj->attr[OBJ_SHORT_NAME]))){
+      /*  [1] write Leaf OP prototype */
+      genFullOP_FuncName(TYPE_LEAF, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
+      genFullOP_FuncName(TYPE_LEAF, FALSE, obj->attr[OBJ_SHORT_NAME], sizeof(setOpBuff), setOpBuff);  //generate get op function name
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_GET_PROTOTYPE, getOpBuff);
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_SET_PROTOTYPE, setOpBuff);
+    }
 
-  if(obj->child){
-    // enum e%s{
-    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_ENUM_BEGIN, obj->attr[OBJ_SHORT_NAME]);
-    tmp = obj->child;
-    while(tmp){
-      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_ENUM_ENTRY, tmp->attr[OBJ_SHORT_NAME]);
-      tmp = tmp->next;    // go through next object
-      if(tmp){
+    /*  [2] write leaf info enum */
+    // enum e%s_%s{
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_ENUM_BEGIN, obj->attr[OBJ_SHORT_NAME]);
+    tmpParam = obj->param;
+    while(tmpParam){
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "  "CWMP_LEAF_INFO_ENUM_ENTRY,
+                              obj->attr[OBJ_SHORT_NAME], tmpParam->common_attr[COMMON_NAME]);
+      tmpParam = tmpParam->next;    // go through next parameter
+      if(tmpParam){
         offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), ",\n");
       }
     }
     // };
-    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_ENUM_END);
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_ENUM_END);
+  }
+
+  /**************** object info ***********************/
+  // int %s(char *name, struct CWMP_LEAF *entity, int *type, void **data);
+  /* Object is ReadOnly type, so set function assign to "NULL" */
+  genFullOP_FuncName(TYPE_OBJ, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
+  offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_GET_PROTOTYPE, getOpBuff);
+
+  if(obj->child){
+    // enum e%s{
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENUM_BEGIN, obj->attr[OBJ_SHORT_NAME]);
+    tmpObj = obj->child;
+    while(tmpObj){
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "  "CWMP_OBJ_INFO_ENUM_ENTRY, tmpObj->attr[OBJ_SHORT_NAME]);
+      tmpObj = tmpObj->next;    // go through next object
+      if(tmpObj){
+        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), ",\n");
+      }
+    }
+    // };
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENUM_END);
   }
 
   offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "/******** %s end ********/\n\n", obj->attr[OBJ_SHORT_NAME]);
