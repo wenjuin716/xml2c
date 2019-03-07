@@ -6,6 +6,11 @@
 struct obj_entry *rootObj=NULL;	// the root object for this spec
 struct obj_entry *presentObj=NULL; // current Object
 
+//xml value string
+struct validstr *obj_type=NULL;
+struct validstr *param_type=NULL;
+struct validstr *param_perm=NULL;
+
 struct attr_table_entry common_attr[]={
   {COMMON_NAME, XML_COMMON_ATTR_NAME},
   {COMMON_SPEC, XML_COMMON_ATTR_SPEC},
@@ -23,6 +28,26 @@ struct attr_table_entry param_attr[]={
   {PARAM_STR_MAN_LEN, XML_PARAM_ATTR_STR_MAX_LEN},
   {PARAM_VALID_STR, XML_PARAM_ATTR_VALID_STR}
 };
+
+struct param_type_table_entry cwmp_type[]={
+  { XML_PARAM_ATTR_TYPE_STR, "eCWMP_tSTRING"},
+  { XML_PARAM_ATTR_TYPE_INT, "eCWMP_tINT"},
+  { XML_PARAM_ATTR_TYPE_UINT, "eCWMP_tUINT"},
+  { XML_PARAM_ATTR_TYPE_BOOL, "eCWMP_tBOOLEAN"},
+  { XML_PARAM_ATTR_TYPE_DATE, "eCWMP_tDATETIME"},
+  { XML_PARAM_ATTR_TYPE_BASE64, "eCWMP_tBASE64"},
+  { XML_PARAM_ATTR_TYPE_ULONG, "eCWMP_tULONG"},
+  { XML_PARAM_ATTR_TYPE_HEXBIN, "eCWMP_tHEXBIN"}
+};
+
+struct param_type_table_entry cwmp_permission[]={
+  { XML_PARAM_ATTR_PERMOSION_R_ONLY, "CWMP_READ"},
+  { XML_PARAM_ATTR_PERMOSION_RW, "CWMP_READ|CWMP_WRITE"}
+};
+
+#define PARAM_TYPE_NUM  ((int)(sizeof(cwmp_type)/sizeof(struct param_type_table_entry)))
+#define PARAM_PERM_NUM  ((int)(sizeof(cwmp_permission)/sizeof(struct param_type_table_entry)))
+
 
 /******************* debug function **************************/
 void dump_param(const unsigned int depth, const struct param_entry *target){
@@ -96,8 +121,6 @@ void dump_all_Object(struct obj_entry *initialObj){
     if(currObj->child){
       /* dump child first */
       dump_all_Object(currObj->child);
-    }else if(currObj->next){
-      dump_all_Object(currObj->next);
     }
 
     currObj = currObj->next;
@@ -114,8 +137,6 @@ void resort_depth(struct obj_entry *initialObj, int isAdd){
     if(currObj->child){
       /* dump child first */
       resort_depth(currObj->child, isAdd);
-    }else if(currObj->next){
-      resort_depth(currObj->next, isAdd);
     }
 
     currObj->depth++;
@@ -139,6 +160,9 @@ void insert_rootObj(void){
 
   root->attr[OBJ_SHORT_NAME] = (char *)calloc(1, strlen(ROOT_OBJ_NAME)+1);
   sprintf(root->attr[OBJ_SHORT_NAME], ROOT_OBJ_NAME);
+
+  root->attr[OBJ_TYPE] = (char *)calloc(1, strlen(XML_OBJ_ATTR_TYPE_SINGLE)+1);
+  sprintf(root->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_SINGLE);
 
   root->child = rootObj;
   root->parent = root;
@@ -206,7 +230,129 @@ void insert_param(struct param_entry **curr, struct param_entry *new){
   }
   return;
 }
+
+void add_validstr(struct validstr **curr, const char *new){
+    if(!new){
+      printf("[%s] NULL new\n", __FUNCTION__);
+      return;
+    }
+    
+    if(!*curr){
+      /* curr is NULL, assign new to curr */
+	  *curr = (struct validstr *)calloc(1, sizeof(struct validstr));
+      (*curr)->str = strdup(new);
+      //printf("  assigned to current\n");
+    }else{
+      /* assign to last one */
+      add_validstr(&((*curr)->next), new);
+    }
+    return;
+}
+
+void del_validstr(struct validstr *prev, struct validstr **curr, const char *new){
+    if(!*curr || !new){
+      printf("[%s] NULL new\n", __FUNCTION__);
+      return;
+    }
+    
+    if(!strncmp((*curr)->str, new, strlen((*curr)->str))){
+      free((*curr)->str);
+      if(!prev){
+      	*curr = (*curr)->next;
+      }else{
+        prev->next = (*curr)->next;
+      }
+
+      free(*curr);
+    }else{
+      /* assign to last one */
+      del_validstr(*curr, &((*curr)->next), new);
+    }
+    return;
+}
 /******************* linked list api ******************/
+void initXml2c(void){
+  // init Object XML
+  add_validstr(&obj_type, XML_OBJ_ATTR_TYPE_SINGLE);
+  add_validstr(&obj_type, XML_OBJ_ATTR_TYPE_MULTIPLE);
+
+  // init parameter XML
+  add_validstr(&param_type, XML_PARAM_ATTR_TYPE_STR);
+  add_validstr(&param_type, XML_PARAM_ATTR_TYPE_INT);
+  add_validstr(&param_type, XML_PARAM_ATTR_TYPE_UINT);
+  add_validstr(&param_type, XML_PARAM_ATTR_TYPE_BOOL);
+  add_validstr(&param_type, XML_PARAM_ATTR_TYPE_DATE);
+  add_validstr(&param_type, XML_PARAM_ATTR_TYPE_BASE64);
+  add_validstr(&param_type, XML_PARAM_ATTR_TYPE_ULONG);
+  add_validstr(&param_type, XML_PARAM_ATTR_TYPE_HEXBIN);
+
+  add_validstr(&param_perm, XML_PARAM_ATTR_PERMOSION_R_ONLY);
+  add_validstr(&param_perm, XML_PARAM_ATTR_PERMOSION_RW);
+
+  return;
+}
+
+int isValidStr(struct validstr *base, const char *value){
+  if(!value)
+    return FALSE;
+
+  struct validstr *tmp = base;
+  while(tmp){
+  	if(tmp->str && !strncmp(tmp->str, value, strlen(tmp->str))){
+      return TRUE;
+    }
+	tmp=tmp->next;
+  }
+
+  return FALSE;
+}
+
+void initCWMP_File(void){
+  FILE *h_fp=NULL, *c_fp=NULL;
+  char h_filename[32], c_filename[32];
+  char shortName[MAX_SHORT_NAME];
+
+  memset(shortName, 0, sizeof(MAX_SHORT_NAME));
+
+  /* translate to one file */
+  snprintf(shortName, MAX_SHORT_NAME, "%s", ROOT_OBJ_NAME);
+
+  sprintf(h_filename, H_FILE_NAME, shortName);
+  sprintf(c_filename, C_FILE_NAME, shortName);
+
+  unlink(h_filename);
+  unlink(c_filename);
+
+  if(!((h_fp=fopen(h_filename, "a+")) && (c_fp=fopen(c_filename, "a+")))){
+    if(h_fp)
+      fclose(h_fp);
+    if(c_fp)
+      fclose(c_fp);
+    return;
+  }
+
+  // write include in c file
+  fprintf (c_fp, LOCAL_INCLUDE, h_filename);
+
+  fprintf (c_fp, "\n\n");
+
+
+  // write include in h file
+  fprintf (h_fp, STANDARD_INCLUDE, "stdio.h");
+  fprintf (h_fp, STANDARD_INCLUDE, "stdlib.h");
+  fprintf (h_fp, STANDARD_INCLUDE, "string.h");
+  fprintf (h_fp, LOCAL_INCLUDE, CWMP_LIB_H_FILE);
+  fprintf (h_fp, LOCAL_INCLUDE, CWMP_MIB_H_FILE);
+
+  fprintf (h_fp, "\n\n");
+
+  if(h_fp)
+    fclose(h_fp);
+  if(c_fp)
+    fclose(c_fp);
+
+  return;
+}
 
 /*
  *  startHandler_obj: the handler of object in start phase
@@ -219,12 +365,33 @@ void insert_param(struct param_entry **curr, struct param_entry *new){
  *      attribute value of name
  */
 static const char *getXmlAttrByName(const char **attr, const char *name){
-  int i;
+  int i,j;
 
   for (i = 0; attr[i]; i += 2) {
     if(!strncmp(name, attr[i], strlen((const char*)name))){
-      /* found target */
-      return attr[i+1];
+      // check attr value is vaild or not
+      if(!strncmp(attr[i], XML_PARAM_ATTR_TYPE, strlen(XML_PARAM_ATTR_TYPE))){
+        for(j=0; j<PARAM_TYPE_NUM; j++){
+          if(!strncmp(cwmp_type[j].xml, attr[i+1], strlen(cwmp_type[j].xml))){
+            return attr[i+1];
+          }
+        }
+        printf("[%s] invalid attribute value(%s).\n", __FUNCTION__, attr[i+1]);
+        return NULL;
+#if 0
+      }else if(!strncmp(attr[i], XML_PARAM_ATTR_PERMISSIN, strlen(XML_PARAM_ATTR_PERMISSIN))){
+        for(j=0; j<PARAM_PERM_NUM; j++){
+          if(!strncmp(cwmp_permission[j].xml, attr[i+1], strlen(cwmp_permission[j].xml))){
+            return attr[i+1];
+          }
+        }
+        printf("[%s] invalid attribute value(%s).\n", __FUNCTION__, attr[i+1]);
+        return NULL;
+#endif
+      }else{
+        /* found target */
+        return attr[i+1];
+      }
     }
   }
 
@@ -262,7 +429,7 @@ void startHandler_obj(void *userData, const char *name, const char **attr){
     return;
   }
 
-  if(!getXmlAttrByName(attr, XML_OBJ_ATTR_OBJ_TYPE)){
+  if(!isValidStr(obj_type, getXmlAttrByName(attr, XML_OBJ_ATTR_OBJ_TYPE))){
     printf("[%s]element %s is NULL\n", __FUNCTION__, XML_OBJ_ATTR_OBJ_TYPE);
     return;
   }
@@ -322,12 +489,12 @@ void startHandler_param(void *userData, const char *name, const char **attr){
     return;
   }
 
-  if(!getXmlAttrByName(attr, XML_PARAM_ATTR_TYPE)){
+  if(!isValidStr(param_type, getXmlAttrByName(attr, XML_PARAM_ATTR_TYPE))){
     printf("[%s]element %s is NULL\n", __FUNCTION__, XML_PARAM_ATTR_TYPE);
     return;
   }
 
-  if(!getXmlAttrByName(attr, XML_PARAM_ATTR_PERMISSIN)){
+  if(!isValidStr(param_perm, getXmlAttrByName(attr, XML_PARAM_ATTR_PERMISSIN))){
     printf("[%s]element %s is NULL\n", __FUNCTION__, XML_PARAM_ATTR_PERMISSIN);
     return;
   }
@@ -409,8 +576,9 @@ void genFullOP_FuncName(const int type, const int isGet, const char *name, const
       snprintf(funcName, strlen, "get"CWMP_OBJ_NAME, name);
       //snprintf(funcName, strlen, "get"CWMP_OBJ_NAME, name);
    }else{
-      //Object only has get function
-      snprintf(funcName, strlen, "NULL");
+      //set function should only for multiple instance
+      snprintf(funcName, strlen, "set"CWMP_OBJ_NAME, name);
+      //snprintf(funcName, strlen, "NULL");
    }
   }else{
     if(isGet){
@@ -423,14 +591,16 @@ void genFullOP_FuncName(const int type, const int isGet, const char *name, const
   return;
 }
 
-void translate_ObjInfo(struct obj_entry *obj){
+void translate_Object(struct obj_entry *obj){
   FILE *h_fp=NULL, *c_fp=NULL;
   char h_filename[32], c_filename[32];
   char shortName[MAX_SHORT_NAME];
-  char buff[MAX_BUFF_LEN]={0}, getOpBuff[128], setOpBuff[128], objBuff[128], leafBuff[128];
+  char buff[MAX_BUFF_LEN]={0}, getOpBuff[128], setOpBuff[128], objBuff[128], leafBuff[128], tmpObjName[128];
+  char typeBuff[32], permBuff[16], tmpbuff[128];
   int offset=0;
   struct obj_entry *tmpObj=NULL;
   struct param_entry *tmpParam=NULL;
+  int i,j;
 
   memset(shortName, 0, sizeof(MAX_SHORT_NAME));
   memset(buff, 0, sizeof(MAX_BUFF_LEN));
@@ -453,7 +623,7 @@ void translate_ObjInfo(struct obj_entry *obj){
   offset = 0;
   memset(buff, 0, sizeof(MAX_BUFF_LEN));
 
-  offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "/******** %s start ********/\n", obj->attr[OBJ_SHORT_NAME]);
+  offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "/******** [%s]%s start ********/\n", obj->attr[OBJ_TYPE], obj->attr[OBJ_SHORT_NAME]);
 
   /**************** leaf info ***********************/
   if(obj->param){
@@ -463,7 +633,7 @@ void translate_ObjInfo(struct obj_entry *obj){
        *   - the handler function when get this function
        */
       genFullOP_FuncName(TYPE_LEAF, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
-      genFullOP_FuncName(TYPE_LEAF, FALSE, obj->attr[OBJ_SHORT_NAME], sizeof(setOpBuff), setOpBuff);  //generate get op function name
+      genFullOP_FuncName(TYPE_LEAF, FALSE, obj->attr[OBJ_SHORT_NAME], sizeof(setOpBuff), setOpBuff);  //generate set op function name
       offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_OP_TABLE_ENTRY, obj->attr[OBJ_SHORT_NAME], getOpBuff, setOpBuff);
     }
 
@@ -474,8 +644,20 @@ void translate_ObjInfo(struct obj_entry *obj){
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_BEGIN, obj->attr[OBJ_SHORT_NAME]);
     tmpParam = obj->param;
     while(tmpParam){
+      for(i=0; i<PARAM_TYPE_NUM; i++){
+        if(!strncmp(cwmp_type[i].xml, tmpParam->attr[PARAM_TYPE],strlen(cwmp_type[i].xml))){
+          break;
+        }
+      }
+
+      for(j=0; j<PARAM_PERM_NUM; j++){
+        if(!strncmp(cwmp_permission[j].xml, tmpParam->attr[PARAM_PERMISSION],strlen(cwmp_permission[j].xml))){
+          break;
+        }
+      }
+
       offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_ENTRY,
-                              tmpParam->common_attr[COMMON_NAME], "TO_DO", "TO_DO", obj->attr[OBJ_SHORT_NAME]);
+                              tmpParam->common_attr[COMMON_NAME], cwmp_type[i].cwmp, cwmp_permission[j].cwmp, obj->attr[OBJ_SHORT_NAME]);
       tmpParam = tmpParam->next;    // go through next parameter
       if(tmpParam){
         offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), ",\n");
@@ -505,11 +687,17 @@ void translate_ObjInfo(struct obj_entry *obj){
   // root object doesn't need op handler function
   if(strncmp(obj->attr[OBJ_SHORT_NAME], ROOT_OBJ_NAME, strlen(obj->attr[OBJ_SHORT_NAME]))){
     /*  [1] write Object OP struct
-     *   - the handler function when get this function
+     *   - single object => only get op function
+     *   - multiple object => get/set op function
      */
-    /* Object is ReadOnly type, so set function assign to "NULL" */
-    genFullOP_FuncName(TYPE_OBJ, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
-    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_OP_TABLE_ENTRY, obj->attr[OBJ_SHORT_NAME], getOpBuff, "NULL");
+    if(!strncmp(obj->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_SINGLE, strlen(obj->attr[OBJ_TYPE]))){
+      genFullOP_FuncName(TYPE_OBJ, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_OP_TABLE_ENTRY, obj->attr[OBJ_SHORT_NAME], getOpBuff, "NULL");
+    }else{
+      genFullOP_FuncName(TYPE_OBJ, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
+      genFullOP_FuncName(TYPE_OBJ, FALSE, obj->attr[OBJ_SHORT_NAME], sizeof(setOpBuff), setOpBuff);  //generate set op function name
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_OP_TABLE_ENTRY, obj->attr[OBJ_SHORT_NAME], getOpBuff, setOpBuff);
+    }
   }
 
   /*  [2] write object info structure
@@ -520,8 +708,12 @@ void translate_ObjInfo(struct obj_entry *obj){
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_BEGIN, obj->attr[OBJ_SHORT_NAME]);
     tmpObj = obj->child;
     while(tmpObj){
-      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENTRY, 
-                              tmpObj->attr[OBJ_SHORT_NAME], tmpObj->attr[OBJ_SHORT_NAME]);
+      if(strncmp(obj->attr[OBJ_SHORT_NAME], ROOT_OBJ_NAME, strlen(obj->attr[OBJ_SHORT_NAME]))){
+        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENTRY, 
+                                tmpObj->attr[OBJ_SHORT_NAME], tmpObj->attr[OBJ_SHORT_NAME]);
+      }else{
+        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_ROOTOBJ_INFO_ENTRY, tmpObj->attr[OBJ_SHORT_NAME]);
+      }
       tmpObj = tmpObj->next;	// go through next object
       if(tmpObj){
         offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), ",\n");
@@ -540,17 +732,21 @@ void translate_ObjInfo(struct obj_entry *obj){
     tmpObj = obj->child;
     while(tmpObj){
       memset(objBuff, 0, sizeof(objBuff));
-      if(tmpObj->child){
+      if(!strncmp(tmpObj->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_SINGLE, strlen(tmpObj->attr[OBJ_TYPE])) && tmpObj->child){
+	  	/* child object is single object */
         snprintf(objBuff, sizeof(objBuff), CWMP_OBJ_NAME, tmpObj->attr[OBJ_SHORT_NAME]);
       }else{
-        snprintf(objBuff, sizeof(objBuff), "NULL");  // no sub-object
+        /* child is multiple object */
+        snprintf(objBuff, sizeof(objBuff), "NULL");  // no child or child object multiple instance
       }
 
       memset(leafBuff, 0, sizeof(leafBuff));
-      if(tmpObj->param){
+      if(!strncmp(tmpObj->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_SINGLE, strlen(tmpObj->attr[OBJ_TYPE])) && tmpObj->param){
+	  	/* child object is single object */
         snprintf(leafBuff, sizeof(leafBuff), CWMP_LEAF_NAME, tmpObj->attr[OBJ_SHORT_NAME]);
       }else{
-        snprintf(leafBuff, sizeof(leafBuff), "NULL");	// no leaf
+        /* child is multiple object */
+        snprintf(leafBuff, sizeof(leafBuff), "NULL");	// no leaf or child object multiple instance
       }
 
       offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_NODE_ENTRY, obj->attr[OBJ_SHORT_NAME], tmpObj->attr[OBJ_SHORT_NAME], leafBuff, objBuff);
@@ -559,6 +755,47 @@ void translate_ObjInfo(struct obj_entry *obj){
     }
 
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_NODE_END);
+  }
+
+  /*  for multiple instance object 
+   *  multiple instance object should be LNKLIST type
+   */
+  if(!strncmp(obj->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_MULTIPLE, strlen(obj->attr[OBJ_TYPE]))){
+    /* Multiple instance object, it use set op function to init/add/del/modify object instance, add set op function */
+    snprintf(tmpObjName, sizeof(tmpObjName), CWMP_OBJ_LINKNODE_NAME, obj->attr[OBJ_SHORT_NAME]);
+#if 0  // Multiple instance Object don't need op handler function
+    genFullOP_FuncName(TYPE_OBJ, TRUE, tmpObjName, sizeof(getOpBuff), getOpBuff);  //generate get op function name
+    genFullOP_FuncName(TYPE_OBJ, FALSE, tmpObjName, sizeof(setOpBuff), setOpBuff);  //generate set op function name
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_OP_TABLE_ENTRY, tmpObjName, getOpBuff, setOpBuff);	   
+#endif
+
+    /* current is multiple instance object, write LINKNODE infomation */
+    // struct CWMP_PRMT xxxxx[]={
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_BEGIN, tmpObjName);
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_LINK_ENTRY);
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_END);    // };
+
+    /* struct CWMP_LINKNODE xxxxx[]={ */
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_LINKNODE_BEGIN, tmpObjName);
+    memset(objBuff, 0, sizeof(objBuff));
+    if(obj->child){
+      snprintf(objBuff, sizeof(objBuff), CWMP_OBJ_NAME, obj->attr[OBJ_SHORT_NAME]);
+    }else{
+      /* LNKLIST object without child object */
+      snprintf(objBuff, sizeof(objBuff), "NULL");   // no child object
+    }
+
+    memset(leafBuff, 0, sizeof(leafBuff));
+    if(obj->param){
+      snprintf(leafBuff, sizeof(leafBuff), CWMP_LEAF_NAME, obj->attr[OBJ_SHORT_NAME]);
+    }else{
+      /* LNKLIST object without param */
+      snprintf(leafBuff, sizeof(leafBuff), "NULL");   // no leaf
+    }
+
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_LINKNODE_ENTRY, tmpObjName, leafBuff, objBuff);
+//    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_LINKNODE_ENTRY, tmpObjName, obj->attr[OBJ_SHORT_NAME], obj->attr[OBJ_SHORT_NAME]);
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_LINKNODE_END);
   }
 
   offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "/******** %s end ********/\n\n", obj->attr[OBJ_SHORT_NAME]);
@@ -572,7 +809,7 @@ void translate_ObjInfo(struct obj_entry *obj){
   /* step 2: write header file */
   offset = 0;
   memset(buff, 0, sizeof(MAX_BUFF_LEN));
-  offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "/******** %s start ********/\n", obj->attr[OBJ_SHORT_NAME]);
+  offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "/******** [%s]%s start ********/\n", obj->attr[OBJ_TYPE], obj->attr[OBJ_SHORT_NAME]);
 
   /**************** leaf info ***********************/
   if(obj->param){
@@ -602,10 +839,17 @@ void translate_ObjInfo(struct obj_entry *obj){
   }
 
   /**************** object info ***********************/
-  // int %s(char *name, struct CWMP_LEAF *entity, int *type, void **data);
-  /* Object is ReadOnly type, so set function assign to "NULL" */
-  genFullOP_FuncName(TYPE_OBJ, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
-  offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_GET_PROTOTYPE, getOpBuff);
+  if(!strncmp(obj->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_SINGLE, strlen(obj->attr[OBJ_TYPE]))){
+    // int %s(char *name, struct CWMP_LEAF *entity, int *type, void **data);
+    /* Object is ReadOnly type, so set function assign to "NULL" */
+    genFullOP_FuncName(TYPE_OBJ, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_GET_PROTOTYPE, getOpBuff);
+  }else{
+    genFullOP_FuncName(TYPE_OBJ, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_GET_PROTOTYPE, getOpBuff);
+    genFullOP_FuncName(TYPE_OBJ, FALSE, obj->attr[OBJ_SHORT_NAME], sizeof(setOpBuff), setOpBuff);  //generate set op function name
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_SET_PROTOTYPE, setOpBuff);
+  }
 
   if(obj->child){
     // enum e%s{
@@ -622,11 +866,24 @@ void translate_ObjInfo(struct obj_entry *obj){
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENUM_END);
   }
 
+  if(!strncmp(obj->attr[OBJ_SHORT_NAME], ROOT_OBJ_NAME, strlen(obj->attr[OBJ_SHORT_NAME]))){
+    tmpObj = obj->child;
+    while(tmpObj){
+      snprintf(tmpbuff, sizeof(tmpbuff), "extern struct CWMP_LEAF "CWMP_LEAF_NAME"[];\n", tmpObj->attr[OBJ_SHORT_NAME]);
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "%s", tmpbuff);
+      snprintf(tmpbuff, sizeof(tmpbuff), "extern struct CWMP_NODE "CWMP_OBJ_NAME"[];\n", tmpObj->attr[OBJ_SHORT_NAME]);
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "%s", tmpbuff);
+
+      tmpObj = tmpObj->next;    // go through next object      
+    }
+    snprintf(tmpbuff, sizeof(tmpbuff), "extern struct CWMP_NODE "CWMP_OBJ_NAME"[];\n", obj->attr[OBJ_SHORT_NAME]);
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "%s", tmpbuff);
+  }
+
   offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "/******** %s end ********/\n\n", obj->attr[OBJ_SHORT_NAME]);
 //  printf("[Obj enum Debug]\n%s\n", buff);
   fputs (buff, h_fp);
 
- 
   if(h_fp)
     fclose(h_fp);
   if(c_fp)
@@ -649,7 +906,7 @@ void translate_all_Object(struct obj_entry *initialObj){
       translate_all_Object(currObj->child);
     }
 
-    translate_ObjInfo(currObj);
+    translate_Object(currObj);
     currObj = currObj->next;
   }
   return;

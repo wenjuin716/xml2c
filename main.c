@@ -141,6 +141,8 @@ main(int argc, char *argv[])
     exit(-1);
   }
 
+  initXml2c();
+
   XML_SetElementHandler(p, start, end);
 //  XML_SetCharacterDataHandler(p, CharacterDataHandler);
 //  XML_SetProcessingInstructionHandler(p, ProcessingInstructionHandler);
@@ -171,6 +173,8 @@ main(int argc, char *argv[])
   // XML file parser done, insert root obj to the head.
   insert_rootObj();  //depth order error
   //dump_all_Object(rootObj);
+
+  initCWMP_File();
   translate_all_Object(rootObj);
   XML_ParserFree(p);
   return 0;
