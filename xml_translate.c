@@ -336,13 +336,24 @@ void initCWMP_File(void){
 
   fprintf (c_fp, "\n\n");
 
-
+#if 0
   // write include in h file
   fprintf (h_fp, STANDARD_INCLUDE, "stdio.h");
   fprintf (h_fp, STANDARD_INCLUDE, "stdlib.h");
   fprintf (h_fp, STANDARD_INCLUDE, "string.h");
   fprintf (h_fp, LOCAL_INCLUDE, CWMP_LIB_H_FILE);
   fprintf (h_fp, LOCAL_INCLUDE, CWMP_MIB_H_FILE);
+#else
+  fprintf (h_fp, STANDARD_INCLUDE, "linux/config.h");
+  fprintf (h_fp, STANDARD_INCLUDE, "config/autoconf.h");
+  fprintf (h_fp, STANDARD_INCLUDE, "rtk/adsl_drv.h");
+  fprintf (h_fp, STANDARD_INCLUDE, "rtk/options.h");
+  fprintf (h_fp, STANDARD_INCLUDE, "rtk/sysconfig.h");
+  fprintf (h_fp, STANDARD_INCLUDE, "rtk/utility.h");
+  fprintf (h_fp, LOCAL_INCLUDE, "cwmp_porting.h");
+  fprintf (h_fp, LOCAL_INCLUDE, "libcwmp.h");
+  fprintf (h_fp, LOCAL_INCLUDE, "prmt_apply.h");
+#endif
 
   fprintf (h_fp, "\n\n");
 
@@ -667,10 +678,25 @@ void translate_Object(struct obj_entry *obj){
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_END);
   }
 
-  /*  [3] write Leaf Node structure
-   *   - list parameter of this object.
-   */
   if(obj->param){
+    /*  [3] write leaf info enum */
+    // enum e%s_%s{
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_ENUM_BEGIN, obj->attr[OBJ_SHORT_NAME]);
+    tmpParam = obj->param;
+    while(tmpParam){
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "  "CWMP_LEAF_INFO_ENUM_ENTRY,
+                              obj->attr[OBJ_SHORT_NAME], tmpParam->common_attr[COMMON_NAME]);
+      tmpParam = tmpParam->next;    // go through next parameter
+      if(tmpParam){
+        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), ",\n");
+      }
+    }
+    // };
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_ENUM_END);
+
+    /*  [3] write Leaf Node structure
+     *   - list parameter of this object.
+     */
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_NODE_BEGIN, obj->attr[OBJ_SHORT_NAME]);
 
     tmpParam = obj->param;
@@ -723,7 +749,23 @@ void translate_Object(struct obj_entry *obj){
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_END);
   }
 
-  /*  [3] write Object Node structure 
+  /*  [3] write Object node enum */
+  if(obj->child){
+    // enum e%s{
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENUM_BEGIN, obj->attr[OBJ_SHORT_NAME]);
+    tmpObj = obj->child;
+    while(tmpObj){
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "  "CWMP_OBJ_INFO_ENUM_ENTRY, tmpObj->attr[OBJ_SHORT_NAME]);
+      tmpObj = tmpObj->next;    // go through next object
+      if(tmpObj){
+        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), ",\n");
+      }
+    }
+    // };
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENUM_END);
+  }
+
+  /*  [4] write Object Node structure 
    *   - list sub-object of this object, and which pointer to leaf/object structure of sub-object.
    */
   if(obj->child){
@@ -822,6 +864,7 @@ void translate_Object(struct obj_entry *obj){
       offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_SET_PROTOTYPE, setOpBuff);
     }
 
+#if 0
     /*  [2] write leaf info enum */
     // enum e%s_%s{
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_ENUM_BEGIN, obj->attr[OBJ_SHORT_NAME]);
@@ -836,6 +879,7 @@ void translate_Object(struct obj_entry *obj){
     }
     // };
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_ENUM_END);
+#endif
   }
 
   /**************** object info ***********************/
@@ -851,6 +895,7 @@ void translate_Object(struct obj_entry *obj){
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_SET_PROTOTYPE, setOpBuff);
   }
 
+#if 0
   if(obj->child){
     // enum e%s{
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENUM_BEGIN, obj->attr[OBJ_SHORT_NAME]);
@@ -865,6 +910,7 @@ void translate_Object(struct obj_entry *obj){
     // };
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENUM_END);
   }
+#endif
 
   if(!strncmp(obj->attr[OBJ_SHORT_NAME], ROOT_OBJ_NAME, strlen(obj->attr[OBJ_SHORT_NAME]))){
     tmpObj = obj->child;
