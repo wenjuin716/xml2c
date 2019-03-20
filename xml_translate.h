@@ -73,8 +73,8 @@
 
 #define CWMP_OBJ_INFO_BEGIN	"struct CWMP_PRMT "CWMP_PRMT_INFO_NAME"[] ={\n"		// fill in "short obj name"
 #define CWMP_ROOTOBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    CWMP_READ,    NULL}"      // for root object, don't need op function
-#define CWMP_OBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    CWMP_READ,    &"CWMP_OBJ_OP_NAME"}"	// Object is read only
-#define CWMP_OBJ_INFO_LINK_ENTRY     "{\"unused\",    eCWMP_tOBJECT,    CWMP_READ|CWMP_LNKLIST,    NULL}"	// LINKNODE Object is read only
+#define CWMP_OBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    CWMP_READ,    NULL}"	// Object is read only
+#define CWMP_OBJ_INFO_LINK_ENTRY     "{\"unused\",    eCWMP_tOBJECT,    CWMP_WRITE|CWMP_READ|CWMP_LNKLIST,    NULL}"	// LINKNODE Object is read only
 #define CWMP_OBJ_INFO_END 	"\n};\n"
 #define CWMP_OBJ_INFO_ENUM_BEGIN	"enum e"CWMP_PRMT_INFO_NAME" {\n"	// fill in "short obj name"
 #define CWMP_OBJ_INFO_ENUM_ENTRY	"e%s"         // fill in "short obj name"

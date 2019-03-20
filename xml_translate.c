@@ -352,7 +352,7 @@ void initCWMP_File(void){
   fprintf (h_fp, STANDARD_INCLUDE, "rtk/utility.h");
   fprintf (h_fp, LOCAL_INCLUDE, "cwmp_porting.h");
   fprintf (h_fp, LOCAL_INCLUDE, "libcwmp.h");
-  fprintf (h_fp, LOCAL_INCLUDE, "prmt_apply.h");
+//  fprintf (h_fp, LOCAL_INCLUDE, "prmt_apply.h");
 #endif
 
   fprintf (h_fp, "\n\n");
@@ -713,16 +713,11 @@ void translate_Object(struct obj_entry *obj){
   // root object doesn't need op handler function
   if(strncmp(obj->attr[OBJ_SHORT_NAME], ROOT_OBJ_NAME, strlen(obj->attr[OBJ_SHORT_NAME]))){
     /*  [1] write Object OP struct
-     *   - single object => only get op function
-     *   - multiple object => get/set op function
+     *   - multiple object => set op function
      */
-    if(!strncmp(obj->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_SINGLE, strlen(obj->attr[OBJ_TYPE]))){
-      genFullOP_FuncName(TYPE_OBJ, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
-      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_OP_TABLE_ENTRY, obj->attr[OBJ_SHORT_NAME], getOpBuff, "NULL");
-    }else{
-      genFullOP_FuncName(TYPE_OBJ, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
+    if(!strncmp(obj->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_MULTIPLE, strlen(obj->attr[OBJ_TYPE]))){
       genFullOP_FuncName(TYPE_OBJ, FALSE, obj->attr[OBJ_SHORT_NAME], sizeof(setOpBuff), setOpBuff);  //generate set op function name
-      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_OP_TABLE_ENTRY, obj->attr[OBJ_SHORT_NAME], getOpBuff, setOpBuff);
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_OP_TABLE_ENTRY, obj->attr[OBJ_SHORT_NAME], "NULL", setOpBuff);
     }
   }
 
@@ -735,8 +730,7 @@ void translate_Object(struct obj_entry *obj){
     tmpObj = obj->child;
     while(tmpObj){
       if(strncmp(obj->attr[OBJ_SHORT_NAME], ROOT_OBJ_NAME, strlen(obj->attr[OBJ_SHORT_NAME]))){
-        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENTRY, 
-                                tmpObj->attr[OBJ_SHORT_NAME], tmpObj->attr[OBJ_SHORT_NAME]);
+        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENTRY, tmpObj->attr[OBJ_SHORT_NAME]);
       }else{
         offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_ROOTOBJ_INFO_ENTRY, tmpObj->attr[OBJ_SHORT_NAME]);
       }
@@ -883,14 +877,7 @@ void translate_Object(struct obj_entry *obj){
   }
 
   /**************** object info ***********************/
-  if(!strncmp(obj->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_SINGLE, strlen(obj->attr[OBJ_TYPE]))){
-    // int %s(char *name, struct CWMP_LEAF *entity, int *type, void **data);
-    /* Object is ReadOnly type, so set function assign to "NULL" */
-    genFullOP_FuncName(TYPE_OBJ, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
-    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_GET_PROTOTYPE, getOpBuff);
-  }else{
-    genFullOP_FuncName(TYPE_OBJ, TRUE, obj->attr[OBJ_SHORT_NAME], sizeof(getOpBuff), getOpBuff);  //generate get op function name
-    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_GET_PROTOTYPE, getOpBuff);
+  if(!strncmp(obj->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_MULTIPLE, strlen(obj->attr[OBJ_TYPE]))){
     genFullOP_FuncName(TYPE_OBJ, FALSE, obj->attr[OBJ_SHORT_NAME], sizeof(setOpBuff), setOpBuff);  //generate set op function name
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_SET_PROTOTYPE, setOpBuff);
   }
