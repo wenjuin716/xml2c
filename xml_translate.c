@@ -880,6 +880,25 @@ void translate_Object(struct obj_entry *obj){
   if(!strncmp(obj->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_MULTIPLE, strlen(obj->attr[OBJ_TYPE]))){
     genFullOP_FuncName(TYPE_OBJ, FALSE, obj->attr[OBJ_SHORT_NAME], sizeof(setOpBuff), setOpBuff);  //generate set op function name
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_SET_PROTOTYPE, setOpBuff);
+
+    if(obj->param){
+      snprintf(tmpbuff, sizeof(tmpbuff), "extern struct CWMP_LEAF "CWMP_LEAF_NAME"[];\n", obj->attr[OBJ_SHORT_NAME]);
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "%s", tmpbuff);
+    }
+
+    snprintf(tmpObjName, sizeof(tmpObjName), CWMP_OBJ_LINKNODE_NAME, obj->attr[OBJ_SHORT_NAME]);
+    snprintf(tmpbuff, sizeof(tmpbuff), "extern struct CWMP_LINKNODE "CWMP_OBJ_NODE_NAME"[];\n", tmpObjName);
+    offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "%s", tmpbuff);
+  }else{
+    if(obj->param){
+      snprintf(tmpbuff, sizeof(tmpbuff), "extern struct CWMP_LEAF "CWMP_LEAF_NAME"[];\n", obj->attr[OBJ_SHORT_NAME]);
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "%s", tmpbuff);
+    }
+
+    if(obj->child){
+      snprintf(tmpbuff, sizeof(tmpbuff), "extern struct CWMP_NODE "CWMP_OBJ_NODE_NAME"[];\n", obj->attr[OBJ_SHORT_NAME]);
+      offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "%s", tmpbuff);
+    }
   }
 
 #if 0
