@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define TRUE 1
 #define FALSE 0 
@@ -189,6 +190,7 @@ void endHandler_desc(void *userData, const char *name);
 
 /******************** translate api ******************/
 void initXml2c(void);
+void initCWMP_File(void);
 void insert_rootObj(void);
 void translate_ObjInfo(struct obj_entry *obj);
 void translate_all_Object(struct obj_entry *initialObj);
