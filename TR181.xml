@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<xmlMandatorySingleRootNode>
+
+<object name="Device." shortObjectName="Dev" specSource="TR181" profile="Baseline:1" requirements="P" supportLevel="Present" />
+  <description source="TRx">The top-level object for an TR181. </description>
+
+  <parameter name="InterfaceStackNumberOfEntries" type="unsignedInt" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" />
+
+<object name="Device.DeviceInfo." shortObjectName="DevInfo" specSource="TR181" profile="Baseline:1" requirements="P" supportLevel="Present" />
+  <description source="TRx">This object contains general device information. </description>
+  
+  <parameter name="Manufacturer" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="32" />
+  <parameter name="ManufacturerOUI" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="12" />
+  <parameter name="ModelName" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="64" />
+  <parameter name="Description" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="256" />
+  <parameter name="SerialNumber" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="64" />
+  <parameter name="HardwareVersion" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="64" />
+  <parameter name="SoftwareVersion" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="64" />
+  <parameter name="ProvisioningCode" type="string" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" maxLength="64" />
+  <parameter name="UpTime" type="unsignedInt" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" />
+
+<object name="Device.ManagementServer." shortObjectName="DevMgmtServer" specSource="TR181" profile="Baseline:1" requirements="P" supportLevel="Present" />
+  <description source="TRx">This object contains parameters relating to the CPE's association with an ACS. </description>
+
+  <parameter name="URL" type="string" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" maxLength="256" />
+  <parameter name="Username" type="string" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" maxLength="256" />
+  <parameter name="Password" type="string" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" maxLength="256" />
+  <parameter name="PeriodicInformEnable" type="boolean" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" />
+  <parameter name="PeriodicInformInterval" type="unsignedInt" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" minValue="1" />
+  <parameter name="PeriodicInformTime" type="dateTime" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" />
+  <parameter name="ParameterKey" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="32" />
+  <parameter name="ConnectionRequestURL" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="256" />
+  <parameter name="ConnectionRequestUsername" type="string" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" maxLength="256" />
+  <parameter name="ConnectionRequestPassword" type="string" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" maxLength="256" />
+  <parameter name="UpgradesManaged" type="boolean" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" />
+
+<object name="Device.LANConfigSecurity." shortObjectName="DevLanConfSecurity" specSource="TR181" profile="Baseline:1" requirements="P" supportLevel="Present" />
+  <description source="TRx">This object contains generic device configuration information. </description>
+  
+  <parameter name="ConfigPassword" type="string" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" maxLength="64" />
+
+<object name="Device.DNS." shortObjectName="DevDns" specSource="TR181" profile="Baseline:1" requirements="P" supportLevel="Present" />
+  <description source="TRx">Properties for Domain Name Service (DNS). </description>
+
+<object name="Device.DNS.Client." shortObjectName="DevDnsClient" specSource="TR181" profile="Baseline:1" requirements="P" supportLevel="Present" />
+  <description source="TRx">Client properties for Domain Name Service (DNS). The DNS client resolves FQDN on behalf of device internal (client) applications. </description>
+  
+  <parameter name="Enable" type="boolean" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" />
+  <parameter name="Status" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="256" />
+  <parameter name="ServerNumberOfEntries" type="unsignedInt" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" />
+  
+<object name="Device.DNS.Client.Server.{i}." shortObjectName="DevDnsClientServer" specSource="TR181" profile="Baseline:1" requirements="C" supportLevel="MultipleInstances" />
+  <description source="TRx">This table contains the DNS Server IP address to be used by the DHCP Client (it does not model a DNS Server).  </description>
+
+  <parameter name="Enable" type="boolean" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="false" />
+  <parameter name="Status" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="Disabled" />
+  <parameter name="DNSServer" type="string" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" maxLength="45" />
+  <parameter name="Interface" type="string" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" maxLength="256" />
+  <parameter name="Type" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" />
+</xmlMandatorySingleRootNode>
