@@ -189,6 +189,7 @@ void startHandler_desc(void *userData, const char *name, const char **attr);
 void endHandler_desc(void *userData, const char *name);
 
 /******************** translate api ******************/
+void getLastObjectNameFromXML(struct obj_entry *obj, char *real_name, int size);
 void initXml2c(void);
 void initCWMP_File(void);
 void insert_rootObj(void);

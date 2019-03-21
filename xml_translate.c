@@ -460,9 +460,7 @@ void startHandler_obj(void *userData, const char *name, const char **attr){
   for(i=0; i<OBJ_MAX; i++)
     add_attr(&(new->attr[(int)obj_attr[i].idx]), getXmlAttrByName(attr, obj_attr[i].attr_name));
 
-  //dump_obj(new);	//debug
   insert_obj(&rootObj, new);
-  //dump_obj(new);        //debug
   return;
 }
 
@@ -574,6 +572,53 @@ void endHandler_desc(void *userData, const char *name){
   return;
 }
 
+/*
+ * get Object name from attribute "name" of "object"
+ */
+void getLastObjectNameFromXML(struct obj_entry *obj, char *real_name, int size){
+  char multiIns[]=".{i}.";
+  char singleIns[]=".";
+  char *token=NULL, *origName=NULL;
+  char *pch=NULL;
+
+  if(obj == NULL || real_name == NULL)
+    return;
+
+  memset(real_name, 0x0, size);
+
+  if(!strncmp(obj->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_MULTIPLE, strlen(obj->attr[OBJ_TYPE]))){
+    token = multiIns;
+  }else{
+    token = singleIns;
+  }
+
+  origName=(char *)calloc(1, strlen(obj->common_attr[COMMON_NAME])+1);
+//  memcpy(origName, obj->common_attr[COMMON_NAME], strlen(obj->common_attr[COMMON_NAME]));
+  if(obj->parent){
+    memcpy(origName, obj->common_attr[COMMON_NAME]+strlen(obj->parent->common_attr[COMMON_NAME]), (strlen(obj->common_attr[COMMON_NAME]) - strlen(obj->parent->common_attr[COMMON_NAME])));
+  }else{
+    memcpy(origName, obj->common_attr[COMMON_NAME], strlen(obj->common_attr[COMMON_NAME]));
+  }
+
+  //printf("name=%s\n", origName);
+  pch=strstr(origName, token);
+  if(pch==NULL){
+    printf("Invalid TR069 Object naming, can NOT find end string of object.\n");
+    return;
+  }
+
+  if(strlen(pch) != strlen(token)){
+    printf("invalid end string(%s), it is should be %s \n", pch, token);
+    return;
+  }
+
+  memcpy(real_name, origName, strlen(origName)-strlen(pch));
+
+  if(origName)
+    free(origName);
+  return;
+
+}
 
 /* translate to cwmp of Realtek SDK api */
 /* type: 0 --> object
@@ -730,9 +775,11 @@ void translate_Object(struct obj_entry *obj){
     tmpObj = obj->child;
     while(tmpObj){
       if(strncmp(obj->attr[OBJ_SHORT_NAME], ROOT_OBJ_NAME, strlen(obj->attr[OBJ_SHORT_NAME]))){
-        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENTRY, tmpObj->attr[OBJ_SHORT_NAME]);
+        getLastObjectNameFromXML(tmpObj, tmpbuff, sizeof(tmpbuff));
+        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENTRY, tmpbuff);
       }else{
-        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_ROOTOBJ_INFO_ENTRY, tmpObj->attr[OBJ_SHORT_NAME]);
+        getLastObjectNameFromXML(tmpObj, tmpbuff, sizeof(tmpbuff));
+        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_ROOTOBJ_INFO_ENTRY, tmpbuff);
       }
       tmpObj = tmpObj->next;	// go through next object
       if(tmpObj){
