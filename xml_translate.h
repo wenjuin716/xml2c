@@ -53,6 +53,13 @@
 
 #define XML_PARAM_ATTR_DENY_ACT_TRUE	"true"
 
+/* CWMP definitions */
+#define CWMP_WRITE_FLAG  "CWMP_WRITE"
+#define CWMP_READ_FLAG  "CWMP_READ"
+#define CWMP_LNKLIST_FLAG  "CWMP_LNKLIST"
+#define CWMP_DENY_ACT_FLAG  "CWMP_DENY_ACT"
+#define CWMP_FORCE_ACT_FLAG  "CWMP_FORCE_ACT"
+
 /* translate to cwmp of Realtek SDK */
 #define ROOT_OBJ_NAME	"Root"
 #define H_FILE_NAME	"prmt_%s.h"
@@ -76,10 +83,10 @@
 #define CWMP_SET_PROTOTYPE	"int %s(char *name, struct CWMP_LEAF *entity, int type, void *data);\n"
 
 #define CWMP_OBJ_INFO_BEGIN	"struct CWMP_PRMT "CWMP_PRMT_INFO_NAME"[] ={\n"		// fill in "short obj name"
-#define CWMP_ROOTOBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    CWMP_READ,    NULL}"      // for root object, don't need op function
-#define CWMP_OBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    CWMP_READ,    NULL}"	// Object is read only
-#define CWMP_MULTI_OBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    CWMP_WRITE|CWMP_READ,    &"CWMP_OBJ_OP_NAME"}"     // Multiple instance Object is read/write
-#define CWMP_OBJ_INFO_LINK_ENTRY     "{\"unused\",    eCWMP_tOBJECT,    CWMP_WRITE|CWMP_READ|CWMP_LNKLIST,    NULL}"	// LINKNODE Object is read only
+#define CWMP_ROOTOBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    "CWMP_READ_FLAG",    NULL}"      // for root object, don't need op function
+#define CWMP_OBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    "CWMP_READ_FLAG",    NULL}"	// Object is read only
+#define CWMP_MULTI_OBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    "CWMP_WRITE_FLAG"|"CWMP_READ_FLAG",    &"CWMP_OBJ_OP_NAME"}"     // Multiple instance Object is read/write
+#define CWMP_OBJ_INFO_LINK_ENTRY     "{\"unused\",    eCWMP_tOBJECT,    "CWMP_WRITE_FLAG"|"CWMP_READ_FLAG"|"CWMP_LNKLIST_FLAG",    NULL}"	// LINKNODE Object is read only
 #define CWMP_OBJ_INFO_END 	"\n};\n"
 #define CWMP_OBJ_INFO_ENUM_BEGIN	"enum e"CWMP_PRMT_INFO_NAME" {\n"	// fill in "short obj name"
 #define CWMP_OBJ_INFO_ENUM_ENTRY	"e%s"         // fill in "short obj name"

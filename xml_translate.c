@@ -43,7 +43,7 @@ struct param_type_table_entry cwmp_type[]={
 
 struct param_type_table_entry cwmp_permission[]={
   { XML_PARAM_ATTR_PERMOSION_R_ONLY, "CWMP_READ"},
-  { XML_PARAM_ATTR_PERMOSION_RW, "CWMP_READ|CWMP_WRITE"}
+  { XML_PARAM_ATTR_PERMOSION_RW, CWMP_READ_FLAG"|"CWMP_WRITE_FLAG}
 };
 
 #define PARAM_TYPE_NUM  ((int)(sizeof(cwmp_type)/sizeof(struct param_type_table_entry)))
@@ -701,6 +701,7 @@ void translate_Object(struct obj_entry *obj){
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_BEGIN, obj->attr[OBJ_SHORT_NAME]);
     tmpParam = obj->param;
     while(tmpParam){
+      memset(tmpbuff, 0x0, sizeof(tmpbuff));
       for(i=0; i<PARAM_TYPE_NUM; i++){
         if(!strncmp(cwmp_type[i].xml, tmpParam->attr[PARAM_TYPE],strlen(cwmp_type[i].xml))){
           break;
@@ -709,12 +710,18 @@ void translate_Object(struct obj_entry *obj){
 
       for(j=0; j<PARAM_PERM_NUM; j++){
         if(!strncmp(cwmp_permission[j].xml, tmpParam->attr[PARAM_PERMISSION],strlen(cwmp_permission[j].xml))){
+          memcpy(tmpbuff, cwmp_permission[j].cwmp, strlen(cwmp_permission[j].cwmp));
           break;
         }
       }
 
+      if(tmpParam->attr[PARAM_DENY_ACT] && !strncmp(tmpParam->attr[PARAM_DENY_ACT], XML_PARAM_ATTR_DENY_ACT_TRUE, strlen(XML_PARAM_ATTR_DENY_ACT_TRUE))){
+        printf("%s=%s\n", XML_PARAM_ATTR_DENY_ACT, XML_PARAM_ATTR_DENY_ACT_TRUE);
+        strcat (tmpbuff,"|");
+        strcat (tmpbuff, CWMP_DENY_ACT_FLAG);
+      }
       offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_LEAF_INFO_ENTRY,
-                              tmpParam->common_attr[COMMON_NAME], cwmp_type[i].cwmp, cwmp_permission[j].cwmp, obj->attr[OBJ_SHORT_NAME]);
+                              tmpParam->common_attr[COMMON_NAME], cwmp_type[i].cwmp, tmpbuff, obj->attr[OBJ_SHORT_NAME]);
       tmpParam = tmpParam->next;    // go through next parameter
       if(tmpParam){
         offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), ",\n");
