@@ -32,6 +32,7 @@
 #define XML_PARAM_ATTR_TYPE		"type"			/* boolean, int, unsignedInt, string ... */
 #define XML_PARAM_ATTR_PERMISSIN	"supportLevel"		/* value is belong to "ReadOnly", "ReadWrite" */
 #define XML_PARAM_ATTR_STR_MAX_LEN	"maxLength"		/* Max string length of string type parameter */
+#define XML_PARAM_ATTR_DENY_ACT		"denyActiveNotification"	/* force deny active notification */
 #define XML_PARAM_ATTR_VALID_STR	XML_VALID_STR_ARRAY	/* Valid string of string type parameter */
 
 /* xml valid value */
@@ -49,6 +50,8 @@
 
 #define XML_PARAM_ATTR_PERMOSION_R_ONLY "ReadOnly"
 #define XML_PARAM_ATTR_PERMOSION_RW	"ReadWrite"
+
+#define XML_PARAM_ATTR_DENY_ACT_TRUE	"true"
 
 /* translate to cwmp of Realtek SDK */
 #define ROOT_OBJ_NAME	"Root"
@@ -75,6 +78,7 @@
 #define CWMP_OBJ_INFO_BEGIN	"struct CWMP_PRMT "CWMP_PRMT_INFO_NAME"[] ={\n"		// fill in "short obj name"
 #define CWMP_ROOTOBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    CWMP_READ,    NULL}"      // for root object, don't need op function
 #define CWMP_OBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    CWMP_READ,    NULL}"	// Object is read only
+#define CWMP_MULTI_OBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    CWMP_WRITE|CWMP_READ,    &"CWMP_OBJ_OP_NAME"}"     // Multiple instance Object is read/write
 #define CWMP_OBJ_INFO_LINK_ENTRY     "{\"unused\",    eCWMP_tOBJECT,    CWMP_WRITE|CWMP_READ|CWMP_LNKLIST,    NULL}"	// LINKNODE Object is read only
 #define CWMP_OBJ_INFO_END 	"\n};\n"
 #define CWMP_OBJ_INFO_ENUM_BEGIN	"enum e"CWMP_PRMT_INFO_NAME" {\n"	// fill in "short obj name"
@@ -127,6 +131,7 @@ enum {
   PARAM_TYPE=0,
   PARAM_PERMISSION,
   PARAM_STR_MAN_LEN,
+  PARAM_DENY_ACT,
   PARAM_VALID_STR,
   PARAM_MAX     //last entry
 };

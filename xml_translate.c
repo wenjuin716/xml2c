@@ -26,6 +26,7 @@ struct attr_table_entry param_attr[]={
   {PARAM_TYPE, XML_PARAM_ATTR_TYPE},
   {PARAM_PERMISSION, XML_PARAM_ATTR_PERMISSIN},
   {PARAM_STR_MAN_LEN, XML_PARAM_ATTR_STR_MAX_LEN},
+  {PARAM_DENY_ACT, XML_PARAM_ATTR_DENY_ACT},
   {PARAM_VALID_STR, XML_PARAM_ATTR_VALID_STR}
 };
 
@@ -774,11 +775,14 @@ void translate_Object(struct obj_entry *obj){
     offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_BEGIN, obj->attr[OBJ_SHORT_NAME]);
     tmpObj = obj->child;
     while(tmpObj){
+      getLastObjectNameFromXML(tmpObj, tmpbuff, sizeof(tmpbuff));
       if(strncmp(obj->attr[OBJ_SHORT_NAME], ROOT_OBJ_NAME, strlen(obj->attr[OBJ_SHORT_NAME]))){
-        getLastObjectNameFromXML(tmpObj, tmpbuff, sizeof(tmpbuff));
-        offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENTRY, tmpbuff);
+        if(!strncmp(tmpObj->attr[OBJ_TYPE], XML_OBJ_ATTR_TYPE_MULTIPLE, strlen(tmpObj->attr[OBJ_TYPE]))){
+          offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_MULTI_OBJ_INFO_ENTRY, tmpbuff, tmpObj->attr[OBJ_SHORT_NAME]);
+        }else{
+          offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_OBJ_INFO_ENTRY, tmpbuff);
+        }
       }else{
-        getLastObjectNameFromXML(tmpObj, tmpbuff, sizeof(tmpbuff));
         offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), CWMP_ROOTOBJ_INFO_ENTRY, tmpbuff);
       }
       tmpObj = tmpObj->next;	// go through next object
