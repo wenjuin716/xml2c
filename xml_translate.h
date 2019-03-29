@@ -32,8 +32,9 @@
 #define XML_PARAM_ATTR_TYPE		"type"			/* boolean, int, unsignedInt, string ... */
 #define XML_PARAM_ATTR_PERMISSIN	"supportLevel"		/* value is belong to "ReadOnly", "ReadWrite" */
 #define XML_PARAM_ATTR_STR_MAX_LEN	"maxLength"		/* Max string length of string type parameter */
+#define XML_PARAM_ATTR_MAY_DENY_ACT	"mayDenyActiveNotification"	/* may deny active notification */
 #define XML_PARAM_ATTR_DENY_ACT		"denyActiveNotification"	/* force deny active notification */
-#define XML_PARAM_ATTR_VALID_STR	XML_VALID_STR_ARRAY	/* Valid string of string type parameter */
+#define XML_PARAM_ATTR_VALID_STR	"validstringarray"	/* Valid string of string type parameter */
 
 /* xml valid value */
 #define XML_OBJ_ATTR_TYPE_SINGLE		"Present"
@@ -86,7 +87,7 @@
 #define CWMP_ROOTOBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    "CWMP_READ_FLAG",    NULL}"      // for root object, don't need op function
 #define CWMP_OBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    "CWMP_READ_FLAG",    NULL}"	// Object is read only
 #define CWMP_MULTI_OBJ_INFO_ENTRY     "{\"%s\",    eCWMP_tOBJECT,    "CWMP_WRITE_FLAG"|"CWMP_READ_FLAG",    &"CWMP_OBJ_OP_NAME"}"     // Multiple instance Object is read/write
-#define CWMP_OBJ_INFO_LINK_ENTRY     "{\"unused\",    eCWMP_tOBJECT,    "CWMP_WRITE_FLAG"|"CWMP_READ_FLAG"|"CWMP_LNKLIST_FLAG",    NULL}"	// LINKNODE Object is read only
+#define CWMP_OBJ_INFO_LINK_ENTRY     "{\"0\",    eCWMP_tOBJECT,    "CWMP_WRITE_FLAG"|"CWMP_READ_FLAG"|"CWMP_LNKLIST_FLAG",    NULL}"	// LINKNODE Object is read only
 #define CWMP_OBJ_INFO_END 	"\n};\n"
 #define CWMP_OBJ_INFO_ENUM_BEGIN	"enum e"CWMP_PRMT_INFO_NAME" {\n"	// fill in "short obj name"
 #define CWMP_OBJ_INFO_ENUM_ENTRY	"e%s"         // fill in "short obj name"
@@ -138,6 +139,7 @@ enum {
   PARAM_TYPE=0,
   PARAM_PERMISSION,
   PARAM_STR_MAN_LEN,
+  PARAM_MAY_DENY_ACT,
   PARAM_DENY_ACT,
   PARAM_VALID_STR,
   PARAM_MAX     //last entry

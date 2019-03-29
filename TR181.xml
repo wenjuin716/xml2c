@@ -11,13 +11,13 @@
   
   <parameter name="Manufacturer" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="32" />
   <parameter name="ManufacturerOUI" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="12" />
-  <parameter name="ModelName" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="64" />
-  <parameter name="Description" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="256" />
+  <parameter name="ModelName" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="64" mayDenyActiveNotification="true" denyActiveNotification="true" />
+  <parameter name="Description" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="256" mayDenyActiveNotification="true" />
   <parameter name="SerialNumber" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="64" />
   <parameter name="HardwareVersion" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="64" />
   <parameter name="SoftwareVersion" type="string" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" maxLength="64" />
   <parameter name="ProvisioningCode" type="string" specSource="TR181" profile="Baseline:1" requirements="W" supportLevel="ReadWrite" defaultValue="" maxLength="64" />
-  <parameter name="UpTime" type="unsignedInt" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" />
+  <parameter name="UpTime" type="unsignedInt" specSource="TR181" profile="Baseline:1" requirements="R" supportLevel="ReadOnly" defaultValue="" mayDenyActiveNotification="true" />
 
 <object name="Device.ManagementServer." shortObjectName="DevMgmtServer" specSource="TR181" profile="Baseline:1" requirements="P" supportLevel="Present" />
   <description source="TRx">This object contains parameters relating to the CPE's association with an ACS. </description>

@@ -26,6 +26,7 @@ struct attr_table_entry param_attr[]={
   {PARAM_TYPE, XML_PARAM_ATTR_TYPE},
   {PARAM_PERMISSION, XML_PARAM_ATTR_PERMISSIN},
   {PARAM_STR_MAN_LEN, XML_PARAM_ATTR_STR_MAX_LEN},
+  {PARAM_MAY_DENY_ACT, XML_PARAM_ATTR_MAY_DENY_ACT},
   {PARAM_DENY_ACT, XML_PARAM_ATTR_DENY_ACT},
   {PARAM_VALID_STR, XML_PARAM_ATTR_VALID_STR}
 };
@@ -715,8 +716,8 @@ void translate_Object(struct obj_entry *obj){
         }
       }
 
-      if(tmpParam->attr[PARAM_DENY_ACT] && !strncmp(tmpParam->attr[PARAM_DENY_ACT], XML_PARAM_ATTR_DENY_ACT_TRUE, strlen(XML_PARAM_ATTR_DENY_ACT_TRUE))){
-        printf("%s=%s\n", XML_PARAM_ATTR_DENY_ACT, XML_PARAM_ATTR_DENY_ACT_TRUE);
+      if((tmpParam->attr[PARAM_DENY_ACT] && !strncmp(tmpParam->attr[PARAM_DENY_ACT], XML_PARAM_ATTR_DENY_ACT_TRUE, strlen(XML_PARAM_ATTR_DENY_ACT_TRUE))) ||
+      (tmpParam->attr[PARAM_MAY_DENY_ACT] && !strncmp(tmpParam->attr[PARAM_MAY_DENY_ACT], XML_PARAM_ATTR_DENY_ACT_TRUE, strlen(XML_PARAM_ATTR_DENY_ACT_TRUE)))){
         strcat (tmpbuff,"|");
         strcat (tmpbuff, CWMP_DENY_ACT_FLAG);
       }
