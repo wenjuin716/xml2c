@@ -35,6 +35,11 @@
 #include <stdio.h>
 #include <expat.h>
 #include "xml_translate.h"
+#include <unistd.h>  //for getopt
+extern char *optarg;
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/mman.h>
 
 #ifdef XML_LARGE_SIZE
 # if defined(XML_USE_MSC_EXTENSIONS) && _MSC_VER < 1400
@@ -52,9 +57,6 @@
 # define XML_FMT_STR "s"
 #endif
 
-#define BUFFSIZE        8192
-
-char Buff[BUFFSIZE];
 #if 0
 struct translate_entry{
   char element[16];		// xml element name
@@ -129,12 +131,55 @@ ProcessingInstructionHandler(void *userData, const XML_Char *target, const XML_C
   printf("[%s] data=%s\n", __FUNCTION__, data);
 }
 
+void usage(void){
+  fprintf(stderr, "xml2c - translate cwmp xml file to c format\n");
+  fprintf(stderr, "  -f <FILE>      cwmp xml file\n");
+  fprintf(stderr, "  -d             debug mode(OPTION)\n");
+  return;
+}
+
 int
 main(int argc, char *argv[])
 {
+  int c;	/* command line arg */
+  char xmlName[64]={0}, *xml_mem=NULL;
+  int xml_fd;
+  struct stat xml_stat;
+
+  while ((c = getopt(argc, argv, "f:dh")) != -1){
+    switch (c) {
+      case 'f':
+        snprintf(xmlName, sizeof(xmlName), "%s", optarg);
+        break;
+      case 'd':
+        debug=TRUE;
+        break;
+      case 'h':
+        usage();
+        exit(0);
+      default:
+        fprintf(stderr, "known arg option (%c)\n", (char)c);
+	usage();
+        exit(-1);
+    }
+  }
+
+  if(-1 == (xml_fd = open(xmlName, O_RDONLY))){
+    fprintf(stderr, "open %s error\n", xmlName);
+    exit(-1);
+  }
+
+  fstat(xml_fd, &xml_stat);
+  /* MAP_OPTIONS: see compat.h */
+  if((void *)-1 == (xml_mem = mmap(0, xml_stat.st_size, PROT_READ, MAP_FILE|MAP_PRIVATE, xml_fd, 0))){
+    fprintf(stderr, "mmap error\n");
+    exit(-1);
+  }
+  close(xml_fd);
+
+  //DEBUG("xml_mem=\n%s\n", xml_mem);
+
   XML_Parser p = XML_ParserCreate(NULL);
-  (void)argc;
-  (void)argv;
 
   if (! p) {
     fprintf(stderr, "Couldn't allocate memory for parser\n");
@@ -147,27 +192,12 @@ main(int argc, char *argv[])
 //  XML_SetCharacterDataHandler(p, CharacterDataHandler);
 //  XML_SetProcessingInstructionHandler(p, ProcessingInstructionHandler);
 
-  for (;;) {
-    int done;
-    int len;
-
-    len = (int)fread(Buff, 1, BUFFSIZE, stdin);
-    if (ferror(stdin)) {
-      fprintf(stderr, "Read error\n");
-      exit(-1);
-    }
-    done = feof(stdin);
-
-    if (XML_Parse(p, Buff, len, done) == XML_STATUS_ERROR) {
-      fprintf(stderr,
-              "Parse error at line %" XML_FMT_INT_MOD "u:\n%" XML_FMT_STR "\n",
-              XML_GetCurrentLineNumber(p),
-              XML_ErrorString(XML_GetErrorCode(p)));
-      exit(-1);
-    }
-
-    if (done)
-      break;
+  if (XML_Parse(p, xml_mem, xml_stat.st_size, 1) == XML_STATUS_ERROR) {
+    fprintf(stderr,
+            "Parse error at line %" XML_FMT_INT_MOD "u:\n%" XML_FMT_STR "\n",
+            XML_GetCurrentLineNumber(p),
+            XML_ErrorString(XML_GetErrorCode(p)));
+    exit(-1);
   }
 
   // XML file parser done, insert root obj to the head.

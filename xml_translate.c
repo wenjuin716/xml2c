@@ -3,6 +3,8 @@
 #define MAX_BUFF_LEN 10000	// Max buff length should be tIGDObject[] of TR98
 #define MAX_SHORT_NAME 64	// Max object short name length
 
+int debug=FALSE;
+
 struct obj_entry *rootObj=NULL;	// the root object for this spec
 struct obj_entry *presentObj=NULL; // current Object
 
@@ -894,7 +896,7 @@ void translate_Object(struct obj_entry *obj){
   }
 
   offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "/******** %s end ********/\n\n", obj->attr[OBJ_SHORT_NAME]);
-//  printf("[ObjInfo Debug]\n%s\n", buff);
+  DEBUG("ObjInfo=\n%s\n", buff);
   fputs (buff, c_fp);
 
 
@@ -992,7 +994,7 @@ void translate_Object(struct obj_entry *obj){
   }
 
   offset += snprintf(buff+offset, (MAX_BUFF_LEN-offset), "/******** %s end ********/\n\n", obj->attr[OBJ_SHORT_NAME]);
-//  printf("[Obj enum Debug]\n%s\n", buff);
+  DEBUG("Obj enum=\n%s\n", buff);
   fputs (buff, h_fp);
 
   if(h_fp)

@@ -5,12 +5,13 @@ OBJS = xml_translate.o main.o
 EXEC = xml2c
 CFLAGS = -I$(EXPAT_DIR)/INSTALL/include/ 
 LDFALGS = -L$(EXPAT_DIR)/INSTALL/lib/ -static -lexpat
+TOOLS_DIR = $(HOME)/bin
 
 all: pre_config $(OBJS)
 	$(CC) -o $(EXEC) $(OBJS) $(CFLAGS) $(LDFALGS)
 
 install:
-	cp $(TOOLS_DIR)
+	install $(CURR_DIR)/$(EXEC) $(TOOLS_DIR)
 
 pre_config:
 	if [ ! -d $(EXPAT_DIR) ]; then \

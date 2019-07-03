@@ -6,6 +6,9 @@
 #define TRUE 1
 #define FALSE 0 
 
+extern int debug;
+#define DEBUG(fmt, args...) do {if(debug) fprintf(stderr, "[DEBUG]"fmt, ## args);} while(0)
+
 #define STANDARD_INCLUDE	"#include<%s>\n"
 #define LOCAL_INCLUDE		"#include\"%s\"\n"
 // CWMP lib header file name
