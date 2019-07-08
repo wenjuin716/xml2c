@@ -7,6 +7,8 @@ int debug=FALSE;
 
 struct obj_entry *rootObj=NULL;	// the root object for this spec
 struct obj_entry *presentObj=NULL; // current Object
+struct validStr_entry *validStr_head=NULL;	// head of valid string struct
+struct validStr_entry *validStr_curr=NULL;	// curr of valid string struct
 
 //xml value string
 struct validstr *obj_type=NULL;
@@ -33,6 +35,10 @@ struct attr_table_entry param_attr[]={
   {PARAM_VALID_STR, XML_PARAM_ATTR_VALID_STR}
 };
 
+struct attr_table_entry validStr_attr[]={
+  {VALIDSTR_VALUE, XML_VALID_STR_ATTR_VALUE},
+};
+
 struct param_type_table_entry cwmp_type[]={
   { XML_PARAM_ATTR_TYPE_STR, "eCWMP_tSTRING"},
   { XML_PARAM_ATTR_TYPE_INT, "eCWMP_tINT"},
@@ -54,6 +60,36 @@ struct param_type_table_entry cwmp_permission[]={
 
 
 /******************* debug function **************************/
+void dump_validStr(const struct validStr_entry *target){
+  int i;
+  const struct validStr_entry *tmp_entry=NULL;
+  struct validstr *tmp=NULL;
+
+  if(!target)
+    return;
+
+  tmp_entry=target;
+  printf("********************\n");
+  while(tmp_entry){
+    /* show common attribute */
+    if(tmp_entry->common_attr[COMMON_NAME])
+      printf("valid String %s=\"%s\"\n", common_attr[COMMON_NAME].attr_name, tmp_entry->common_attr[COMMON_NAME]);
+
+    tmp = tmp_entry->head;
+    /* show parameter attribute */
+    while(tmp){
+      if(tmp->str){
+        printf("\t%s\n", tmp->str);
+      }
+      tmp=tmp->next;
+    }
+
+	tmp_entry = tmp_entry->next;
+  }
+  printf("********************\n");
+  return;
+}
+
 void dump_param(const unsigned int depth, const struct param_entry *target){
   int i;
 
@@ -231,6 +267,23 @@ void insert_param(struct param_entry **curr, struct param_entry *new){
     new->prev = *curr;
     //printf("new object is belong to this Depth, search next.\n");
     insert_param(&((*curr)->next), new);
+  }
+  return;
+}
+
+void insert_validStr(struct validStr_entry **curr, struct validStr_entry *new){
+  if(!new){
+    printf("[%s] NULL new\n", __FUNCTION__);
+    return;
+  }
+
+  if(!*curr){
+    /* curr is NULL, assign new to curr */
+    *curr = new;
+  }else{
+    /* assign to last one */
+    new->prev = *curr;
+    insert_validStr(&((*curr)->next), new);
   }
   return;
 }
@@ -546,6 +599,98 @@ void startHandler_param(void *userData, const char *name, const char **attr){
 void endHandler_param(void *userData, const char *name){
   return;
 }
+
+/*
+ *  startHandler_validSTR: the handler of valid string of parameter
+ *    input parameter:
+ *      userData:
+ *      name: element name
+ *      attr: attribut array of element
+ *    output parameter:
+ *      NULL
+ *    return value:
+ *      NULL
+ */
+void startHandler_validSTR(void *userData, const char *name, const char **attr){
+//  DEBUG("[%s] <%s> name=%s, \n", __FUNCTION__, name, getXmlAttrByName(attr, XML_COMMON_ATTR_NAME));
+  struct validStr_entry *new=NULL;
+  int i=0;
+
+  if(!getXmlAttrByName(attr, XML_COMMON_ATTR_NAME)){
+    printf("[%s]element %s is NULL\n", __FUNCTION__, XML_COMMON_ATTR_NAME);
+    return;
+  }
+
+  new = (struct validStr_entry *)calloc(1, sizeof(struct validStr_entry));
+  if(!new){
+	printf("[%s]calloc fail\n", __FUNCTION__);
+	return;
+  }
+
+  /* assign common attribute */
+  for(i=0; i<COMMON_MAX; i++)
+    add_attr(&(new->common_attr[(int)common_attr[i].idx]), getXmlAttrByName(attr, common_attr[i].attr_name));
+
+  validStr_curr = new;
+  insert_validStr(&validStr_head, new);
+  return;
+}
+
+/*
+ *  endHandler_validSTR: the handler of valid string of parameter
+ *    input parameter:
+ *      userData:
+ *      name: element name
+ *    output parameter:
+ *      NULL
+ *    return value:
+ *      NULL
+ */
+void endHandler_validSTR(void *userData, const char *name){
+//  DEBUG("[%s] <%s>\n", __FUNCTION__, name);
+  return;
+}
+
+/*
+ *  startHandler_validSTREle: the handler of string value of valid str
+ *    input parameter:
+ *      userData:
+ *      name: element name
+ *      attr: attribut array of element
+ *    output parameter:
+ *      NULL
+ *    return value:
+ *      NULL
+ */
+void startHandler_validSTREle(void *userData, const char *name, const char **attr){
+  int i=0;
+  if(!getXmlAttrByName(attr, XML_VALID_STR_ATTR_VALUE)){
+    printf("[%s]element %s is NULL\n", __FUNCTION__, XML_VALID_STR_ATTR_VALUE);
+    return;
+  }
+
+  /* assign object attribute */
+  for(i=0; i<VALIDSTR_MAX; i++)
+    add_validstr(&(validStr_curr->head), getXmlAttrByName(attr, validStr_attr[i].attr_name));
+
+  return;
+}
+
+/*
+ *  endHandler_validSTREle: the handler of string value of valid str
+ *    input parameter:
+ *      userData:
+ *      name: element name
+ *    output parameter:
+ *      NULL
+ *    return value:
+ *      NULL
+ */
+void endHandler_validSTREle(void *userData, const char *name){
+  //DEBUG("[%s] <%s>\n", __FUNCTION__, name);
+  return;
+}
+
 
 /*
  *  startHandler_desc: the handler of description in start phase

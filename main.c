@@ -67,11 +67,14 @@ struct translate_entry{
 struct translate_entry xml_translate_table[]={
   { XML_OBJ_ELEMENT, startHandler_obj, endHandler_obj},
   { XML_PARAM_ELEMENT, startHandler_param, endHandler_param},
+  { XML_VALID_STR_ARRAY, startHandler_validSTR, endHandler_validSTR},
+  { XML_VALID_STR_ELEMENT, startHandler_validSTREle, endHandler_validSTREle},
   { XML_DESC_ELEMENT, startHandler_desc, endHandler_desc}
 }; 
 
 #define xmlTranslateNum		((int)(sizeof(xml_translate_table)/sizeof(struct translate_entry)))
 extern struct obj_entry *rootObj;
+extern struct validStr_entry *validStr_head;
 
 int Depth;
 
@@ -83,7 +86,7 @@ start(void *data, const XML_Char *el, const XML_Char **attr)
 
   for(i=0; i<xmlTranslateNum; i++){
     if(!strncmp(el, xml_translate_table[i].element, strlen(el))){
-	xml_translate_table[i].startHandler(data, (const char*)el, (const char**)attr);
+      xml_translate_table[i].startHandler(data, (const char*)el, (const char**)attr);
     }
   }
   Depth++;
@@ -113,7 +116,7 @@ end(void *data, const XML_Char *el)
 
   for(i=0; i<xmlTranslateNum; i++){
     if(!strncmp(el, xml_translate_table[i].element, strlen(el))){
-        xml_translate_table[i].endHandler(data, (const char*)el);
+      xml_translate_table[i].endHandler(data, (const char*)el);
     }
   }
 
@@ -203,6 +206,7 @@ main(int argc, char *argv[])
   // XML file parser done, insert root obj to the head.
   insert_rootObj();  //depth order error
   //dump_all_Object(rootObj);
+  dump_validStr(validStr_head);
 
   initCWMP_File();
   translate_all_Object(rootObj);

@@ -19,7 +19,7 @@ extern int debug;
 #define XML_OBJ_ELEMENT         "object"		// Element mapping to TR69 object node
 #define XML_PARAM_ELEMENT       "parameter"		// Element mapping to TR69 parameter of specific object
 #define XML_DESC_ELEMENT        "description"		// Element use to decript another element
-#define XML_VALID_STR_ARRAY	"validstringarray"	// Element use to restrict string value for string type parameter
+#define XML_VALID_STR_ARRAY	    "validstringarray"	// Element use to restrict string value for string type parameter
 #define XML_VALID_STR_ELEMENT	"element"		// Element which is string value in XML_VALID_STR_ARRAY
 
 /* allow common attribute */
@@ -38,6 +38,9 @@ extern int debug;
 #define XML_PARAM_ATTR_MAY_DENY_ACT	"mayDenyActiveNotification"	/* may deny active notification */
 #define XML_PARAM_ATTR_DENY_ACT		"denyActiveNotification"	/* force deny active notification */
 #define XML_PARAM_ATTR_VALID_STR	"validstringarray"	/* Valid string of string type parameter */
+
+/* allow validstringarray attribute */
+#define XML_VALID_STR_ATTR_VALUE	"ValidStringValue"	/* Valid string of validstringarray element */
 
 /* xml valid value */
 #define XML_OBJ_ATTR_TYPE_SINGLE		"Present"
@@ -149,6 +152,11 @@ enum {
 };
 
 enum {
+  VALIDSTR_VALUE=0,
+  VALIDSTR_MAX     //last entry
+};
+
+enum {
   OBJ_SHORT_NAME=0,
   OBJ_TYPE,
   OBJ_MAX
@@ -193,7 +201,16 @@ struct validstr {
   struct validstr *next;
 };
 
+struct validStr_entry{
+  char *common_attr[COMMON_MAX];
+  struct validstr *head;
+  struct validStr_entry *prev;
+  struct validStr_entry *next;
+};
+
+
 /******************* debug function **************************/
+void dump_validStr(const struct validStr_entry *target);
 void dump_obj(const struct obj_entry *target);
 void dump_all_Object(struct obj_entry *initialObj);
 
@@ -202,6 +219,10 @@ void startHandler_obj(void *userData, const char *name, const char **attr);
 void endHandler_obj(void *userData, const char *name);
 void startHandler_param(void *userData, const char *name, const char **attr);
 void endHandler_param(void *userData, const char *name);
+void startHandler_validSTR(void *userData, const char *name, const char **attr);
+void endHandler_validSTR(void *userData, const char *name);
+void startHandler_validSTREle(void *userData, const char *name, const char **attr);
+void endHandler_validSTREle(void *userData, const char *name);
 void startHandler_desc(void *userData, const char *name, const char **attr);
 void endHandler_desc(void *userData, const char *name);
 
